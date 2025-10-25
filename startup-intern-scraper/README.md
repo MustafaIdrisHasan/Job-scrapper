@@ -1,105 +1,122 @@
-# Startup Internship Scraper
+# Unified Scraper System
 
-Lightweight, terminal-first scraper that gathers internship listings from Y Combinator's Work at a Startup board and startup.jobs, infers recommended tech stacks, exports CSV/XLSX/PDF reports, and notifies you via desktop alerts and Gmail.
+A unified scraper system that lets you choose between Salem Techsperts laptop scraper and Y Combinator job scraper.
 
-## Requirements
-- Python 3.10+
-- (Recommended) Virtual environment
+## Features
 
-## Setup
+### 🖥️ Salem Techsperts Laptop Scraper
+- Crawls all pages of laptop listings
+- Extracts title, price, currency, stock status, product URL, full description
+- Calculates business_score (portability/battery/newer CPU) and server_score (RAM/cores/storage/virtualization)
+- Exports to CSV with scoring
+
+### 💼 Y Combinator Job Scraper  
+- Scrapes Y Combinator Work at a Startup jobs
+- Filters by job type, role category, and keywords
+- Extracts company, role, location, pay, responsibilities, tech stack
+- Exports to CSV
+
+## Installation
+
 ```bash
-# Windows (PowerShell)
-python -m venv .venv
-.\.venv\Scripts\Activate.ps1
-
-# macOS / Linux
-python3 -m venv .venv
-source .venv/bin/activate
-
-# Install dependencies
-pip install -r requirements.txt
+pip install requests beautifulsoup4
 ```
-
-## Environment Configuration
-Copy `.env.sample` to `.env` and update the values:
-
-```
-cp .env.sample .env  # macOS / Linux
-copy .env.sample .env  # Windows
-```
-
-Required keys:
-- `GMAIL_SENDER`: Gmail address that will send summary messages.
-- `GMAIL_APP_PASSWORD`: Gmail App Password (create at https://myaccount.google.com > Security > App Passwords).
-- `GMAIL_RECIPIENT`: Address to receive updates (can match `GMAIL_SENDER`).
-
-Optional:
-- `SCRAPE_DELAY_MIN_SECONDS` / `SCRAPE_DELAY_MAX_SECONDS`: polite delay window between requests.
-- `USER_AGENT`: Custom user-agent string.
-- `ENABLE_WELLFOUND`: Set to `true` to attempt optional Wellfound scraping (skips gracefully if HTML is obfuscated).
-- `RATE_LIMITS`: Comma-separated `domain=seconds` pairs (e.g., `workatastartup.com=10,startup.jobs=15`).
 
 ## Usage
-Run all commands from the `startup-intern-scraper` directory.
+
+### Salem Techsperts Laptop Scraper
 
 ```bash
-# One-off scrape
-python -m app.cli run
+# Basic scraping with CSV export
+python unified_scraper.py --scraper salem --export-csv --max-pages 20
 
-# Continuous schedule (default: immediately, then every 2 days)
-python -m app.cli schedule
-
-# Optional Tkinter UI with "Run Now" button
-python -m app.cli ui
-
-# Smoke tests (HTML fixture based)
-python -m app.cli test
+# Just scrape without CSV export
+python unified_scraper.py --scraper salem --max-pages 10
 ```
 
-Outputs are written to `out/`:
-- `internships.csv`
-- `internships.xlsx`
-- `internships_report.pdf`
-- `state.json` (internal deduplication state)
+**Output**: `salem_laptops_YYYYMMDD_HHMMSS.csv` with columns:
+- `title,price,currency,status,url,business_score,server_score,description`
 
-## Scheduling Alternatives
-- **Windows Task Scheduler:** Create a basic task that runs `python -m app.cli run` every 2 days. Ensure the task starts in the project folder and uses your Python interpreter.
-- **macOS / Linux cron:** `0 9 */2 * * /path/to/python -m app.cli run >> /path/to/log 2>&1`
+**Scoring**:
+- `business_score`: portability/battery/newer CPU (higher = better for daily driver)
+- `server_score`: RAM/cores/storage/virtualization (higher = better for home server)
 
-## Notifications
-- Desktop notifications use `plyer`. On macOS, grant terminal notification access if prompted. On Linux, ensure `notify-send` (libnotify) is installed.
-- Gmail summary emails include `Company — Pay (Source)` for new listings since the previous run. Authentication errors are logged without stopping the run.
+### Y Combinator Job Scraper
+
+```bash
+# Scrape all jobs
+python unified_scraper.py --scraper yc
+
+# Filter by job type
+python unified_scraper.py --scraper yc --job-type internship
+
+# Filter by role category
+python unified_scraper.py --scraper yc --role-category backend
+
+# Filter by keywords
+python unified_scraper.py --scraper yc --keywords python,react
+
+# Combined filters
+python unified_scraper.py --scraper yc --job-type internship --role-category backend --keywords python
+```
+
+**Output**: `yc_jobs_YYYYMMDD_HHMMSS.csv` with columns:
+- `company,role_title,location,pay,source_url,responsibilities,recommended_tech_stack`
+
+## Examples
+
+### Find Remote Internships
+```bash
+python unified_scraper.py --scraper yc --job-type internship --keywords remote
+```
+
+### Find Business Laptops
+```bash
+python unified_scraper.py --scraper salem --export-csv --max-pages 20
+# Then check the CSV for high business_score items
+```
+
+### Find Server Laptops
+```bash
+python unified_scraper.py --scraper salem --export-csv --max-pages 20
+# Then check the CSV for high server_score items
+```
+
+## Scoring Heuristics
+
+### Business Score (Daily Driver)
+**Positive factors**:
+- Keywords: `lightweight, thin, ultrabook, portable`
+- Battery: `battery, long battery, battery life`
+- Display: `IPS, FHD, OLED`
+- Storage: `NVMe, 512GB, 1TB`
+- CPU: `i7, i9, Ryzen 7/9, M1/M2/M3`
+
+**Negative factors**:
+- Gaming: `gaming, RGB, 3060, 3070, 3080`
+
+### Server Score (Home Lab)
+**Positive factors**:
+- RAM: `16GB, 32GB, 64GB, ECC`
+- CPU: `i7, i9, Ryzen 7/9, core, threads`
+- Storage: `NVMe, SSD, 2TB`
+- Virtualization: `Docker, Proxmox, VM, virtualization, Hyper-V`
+- Networking: `Ethernet, 2.5G, 10G`
+
+## Output Files
+
+- `salem_laptops_YYYYMMDD_HHMMSS.csv` - Laptop listings with scores (timestamped)
+- `yc_jobs_YYYYMMDD_HHMMSS.csv` - Job listings with details (timestamped)
+
+## Tips
+
+1. **For laptop shopping**: Use the business_score to find portable daily drivers
+2. **For home servers**: Use the server_score to find powerful lab machines  
+3. **For job hunting**: Filter by role category and keywords to find relevant positions
+4. **Upload CSV to ChatGPT**: Get personalized recommendations based on your needs
 
 ## Troubleshooting
-- **Site blocking / captchas:** Increase delay values or update `RATE_LIMITS`. Runs are intentionally infrequent (every 2 days) to stay polite.
-- **Gmail auth failures:** Regenerate the App Password and confirm two-factor authentication is enabled for the sender account.
-- **Windows notifications missing:** Verify Focus Assist is disabled and allow notifications for the Python/terminal app in Settings.
-- **Missing dependencies:** Re-run `pip install -r requirements.txt`. For PDF export issues on Apple Silicon macOS, ensure `libjpeg` and `zlib` are available or switch to `reportlab`.
 
-## Project Structure
-```
-app/
-  cli.py            # CLI entry points
-  config.py         # .env parsing and settings
-  exporter.py       # CSV/XLSX/PDF writers
-  models.py         # Dataclasses for records
-  nlp_infer.py      # Tech stack inference
-  notify.py         # Desktop + Gmail notifications
-  scheduler.py      # 2-day loop using schedule
-  storage.py        # Persistence and state
-  ui.py             # Optional Tkinter UI
-  scrapers/
-    yc.py           # Work at a Startup parser
-    startup_jobs.py # startup.jobs parser
-    wellfound.py    # Optional stub (HTML only)
-docs/
-  IMPLEMENTATION_PLAN.md
-tests/
-  test_nlp.py
-  test_scrapers.py
-out/                # Generated artifacts (ignored until created)
-```
-
-## License
-MIT License – see `LICENSE` for details.
-
+- **Permission errors**: Close any Excel files that might be open
+- **No results**: Try increasing `--max-pages` or check if the website is accessible
+- **Slow scraping**: The scraper includes polite delays to avoid overwhelming servers

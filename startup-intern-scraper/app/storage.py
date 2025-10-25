@@ -90,7 +90,7 @@ def export_all_outputs(
 
     export_csv(df, csv_path)
     export_excel(df, excel_path)
-    export_pdf(df, pdf_path)
+    # export_pdf(df, pdf_path)  # Temporarily disabled due to formatting issues
 
 
 def _columns() -> List[str]:

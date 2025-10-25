@@ -20,19 +20,8 @@ def _get_urls_for_filters(settings: Settings) -> list[str]:
     """Generate URLs based on job type and role category filters."""
     urls = []
     
-    if settings.job_type == "internship":
-        urls.append("https://www.workatastartup.com/internships")
-    elif settings.job_type == "fulltime":
-        urls.append("https://www.workatastartup.com/jobs")
-    else:
-        # Default: get both internships and jobs
-        urls.extend([
-            "https://www.workatastartup.com/internships",
-            "https://www.workatastartup.com/jobs"
-        ])
-    
-    # For now, we'll rely on keyword filtering rather than URL-based filtering
-    # since YC's URL structure may not support direct role filtering
+    # Focus only on internships page for remote internships
+    urls.append("https://www.workatastartup.com/internships")
     
     return urls
 
@@ -67,6 +56,13 @@ def scrape(settings: Settings, client: HttpClient) -> List[InternshipListing]:
                     continue
                 if listing.id in seen:
                     continue
+                
+                # Temporarily disable strict filtering to get data first
+                # if not _is_internship_role(listing):
+                #     continue
+                # 
+                # if not _is_remote_job(listing):
+                #     continue
                 
                 # Apply keyword filtering if specified
                 if settings.keywords and not _matches_keywords(listing, settings.keywords):
@@ -111,10 +107,24 @@ def _parse_card(card, client: HttpClient) -> Optional[InternshipListing]:
     if not location_el:
         location_el = card.select_one(".role-card__location")
     
-    pay_el = card.select_one(".role-card__salary")
+    # Enhanced pay extraction - look in multiple places
+    pay_el = (card.select_one(".role-card__salary") or 
+              card.select_one("[data-testid='salary']") or
+              card.select_one(".salary") or
+              card.select_one("span:contains('$')") or
+              card.select_one("span:contains('USD')") or
+              card.select_one("span:contains('hour')") or
+              card.select_one("span:contains('stipend')"))
+    
     posted_el = card.select_one("time")
 
     responsibilities = _fetch_responsibilities(client, source_url)
+    
+    # Try to extract pay from the detail page if not found in card
+    if not pay_el and source_url:
+        pay_from_detail = _extract_pay_from_detail(client, source_url)
+        if pay_from_detail:
+            pay_el = type('obj', (object,), {'get_text': lambda x, strip=True: pay_from_detail})()
 
     listing = InternshipListing(
         source="yc",
@@ -128,6 +138,40 @@ def _parse_card(card, client: HttpClient) -> Optional[InternshipListing]:
     )
 
     return listing
+
+
+def _is_internship_role(listing: InternshipListing) -> bool:
+    """Check if a role is an internship based on title and description."""
+    title_lower = listing.role_title.lower()
+    desc_lower = listing.responsibilities.lower()
+    
+    internship_keywords = [
+        "intern", "internship", "co-op", "coop", "student", "trainee", 
+        "summer intern", "winter intern", "part-time intern", "remote intern"
+    ]
+    
+    return any(keyword in title_lower or keyword in desc_lower for keyword in internship_keywords)
+
+
+def _is_remote_job(listing: InternshipListing) -> bool:
+    """Check if a job is remote-friendly."""
+    location_lower = (listing.location or "").lower()
+    desc_lower = listing.responsibilities.lower()
+    
+    remote_keywords = [
+        "remote", "work from home", "wfh", "distributed", "virtual",
+        "anywhere", "global", "worldwide", "flexible location", "us / remote",
+        "remote (us)", "united states (remote)", "san francisco - remote"
+    ]
+    
+    # Also check if location contains remote indicators
+    remote_location_indicators = [
+        "remote", "us / remote", "remote (us)", "united states (remote)",
+        "san francisco - remote", "remote / remote"
+    ]
+    
+    return (any(keyword in location_lower or keyword in desc_lower for keyword in remote_keywords) or
+            any(indicator in location_lower for indicator in remote_location_indicators))
 
 
 def _matches_keywords(listing: InternshipListing, keywords: str) -> bool:
@@ -157,3 +201,37 @@ def _fetch_responsibilities(client: HttpClient, detail_url: str) -> str:
     paragraphs = [p.get_text(" ", strip=True) for p in section.find_all(["p", "li"])]
     cleaned = " ".join(paragraphs)
     return cleaned.strip()
+
+
+def _extract_pay_from_detail(client: HttpClient, detail_url: str) -> str:
+    """Extract pay information from job detail page."""
+    try:
+        response = client.get(detail_url)
+    except Exception as exc:  # noqa: BLE001
+        LOGGER.debug("Failed to load YC detail page for pay %s: %s", detail_url, exc)
+        return ""
+    
+    soup = BeautifulSoup(response.text, "lxml")
+    
+    # Look for pay information in various places
+    pay_selectors = [
+        "span:contains('$')",
+        "span:contains('USD')", 
+        "span:contains('hour')",
+        "span:contains('stipend')",
+        "span:contains('salary')",
+        "div:contains('$')",
+        "p:contains('$')",
+        "[data-testid='salary']",
+        ".salary",
+        ".pay"
+    ]
+    
+    for selector in pay_selectors:
+        elements = soup.select(selector)
+        for element in elements:
+            text = element.get_text(strip=True)
+            if any(keyword in text.lower() for keyword in ['$', 'usd', 'hour', 'stipend', 'salary', 'pay']):
+                return text
+    
+    return ""

@@ -51,9 +51,10 @@ def _write_listing(pdf: FPDF, row: pd.Series) -> None:
     role = str(row.get('role_title', ''))[:50].encode('ascii', 'ignore').decode('ascii')
     pdf.multi_cell(0, 6, f"{company} - {role}")
     pdf.set_font("Helvetica", size=11)
-    location = str(row.get("location") or "N/A")[:30].encode('ascii', 'ignore').decode('ascii')
-    pay = str(row.get("pay") or "N/A")[:30].encode('ascii', 'ignore').decode('ascii')
-    pdf.multi_cell(0, 5, f"Location: {location} | Pay: {pay}")
+    location = str(row.get("location") or "N/A")[:20].encode('ascii', 'ignore').decode('ascii')
+    pay = str(row.get("pay") or "N/A")[:20].encode('ascii', 'ignore').decode('ascii')
+    pdf.multi_cell(0, 5, f"Location: {location}")
+    pdf.multi_cell(0, 5, f"Pay: {pay}")
     stack = str(row.get("recommended_tech_stack") or "")[:100].encode('ascii', 'ignore').decode('ascii')
     if stack:
         pdf.multi_cell(0, 5, f"Stack: {stack}")
