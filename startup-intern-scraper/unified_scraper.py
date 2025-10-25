@@ -128,6 +128,11 @@ class UnifiedScraper:
             df = pd.read_csv('out/internships.csv')
             logger.info(f"Found {len(df)} existing listings")
             
+            # If no data, skip to live scraping
+            if len(df) == 0:
+                logger.info("No existing data found, skipping to live scraping")
+                raise Exception("No existing data")
+            
             # Filter for internships if requested
             if job_type == "internship":
                 filtered_df = df[df['role_title'].str.contains('intern|Intern', case=False, na=False)]
@@ -137,21 +142,26 @@ class UnifiedScraper:
             
             # Apply additional filters
             if role_category:
-                # Map role categories to keywords
+                # Map role categories to keywords - search in multiple fields
                 role_keywords = {
-                    "backend": "backend|server|api|database",
-                    "frontend": "frontend|ui|ux|react|angular|vue",
-                    "fullstack": "fullstack|full-stack|full stack",
-                    "data": "data|analytics|ml|ai|machine learning",
-                    "ai": "ai|artificial intelligence|ml|machine learning",
-                    "mobile": "mobile|ios|android|react native",
-                    "devops": "devops|infrastructure|cloud|aws|azure",
-                    "product": "product|pm|product manager",
-                    "design": "design|ui|ux|designer"
+                    "backend": "backend|server|api|database|engineer|software|development",
+                    "frontend": "frontend|ui|ux|react|angular|vue|design",
+                    "fullstack": "fullstack|full-stack|full stack|engineer",
+                    "data": "data|analytics|ml|ai|machine learning|research|scientist",
+                    "ai": "ai|artificial intelligence|ml|machine learning|research|engineer|scientist",
+                    "mobile": "mobile|ios|android|react native|app",
+                    "devops": "devops|infrastructure|cloud|aws|azure|ops",
+                    "product": "product|pm|product manager|management",
+                    "design": "design|ui|ux|designer|visual"
                 }
                 if role_category in role_keywords:
                     pattern = role_keywords[role_category]
-                    filtered_df = filtered_df[filtered_df['role_title'].str.contains(pattern, case=False, na=False)]
+                    # Search in role_title, responsibilities, and recommended_tech_stack
+                    filtered_df = filtered_df[
+                        filtered_df['role_title'].fillna('').str.contains(pattern, case=False, na=False) |
+                        filtered_df['responsibilities'].fillna('').str.contains(pattern, case=False, na=False) |
+                        filtered_df['recommended_tech_stack'].fillna('').str.contains(pattern, case=False, na=False)
+                    ]
                     logger.info(f"After role filter: {len(filtered_df)} listings")
             
             if keywords:
@@ -187,34 +197,235 @@ class UnifiedScraper:
             logger.error(f"Error using existing data: {e}")
             logger.info("Falling back to live scraping...")
             
-            # Fallback to live scraping
+            # Fallback to live scraping with JSON extraction
             try:
-                from app.scrapers.yc import scrape as yc_scrape
-                from app.config import Settings
-                from app.scrapers import HttpClient
+                logger.info("Attempting live scraping from YC website...")
+                response = self.session.get("https://www.workatastartup.com/internships", 
+                                           headers={
+                                               'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
+                                               'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
+                                               'Accept-Language': 'en-US,en;q=0.5',
+                                               'Accept-Encoding': 'gzip, deflate',
+                                               'Connection': 'keep-alive',
+                                               'Upgrade-Insecure-Requests': '1',
+                                           }, timeout=10)
+                response.raise_for_status()
                 
-                settings = Settings()
-                settings.job_type = job_type
-                settings.role_category = role_category
-                settings.keywords = keywords
+                # Extract JSON data from the page
+                import re
+                import json
                 
-                client = HttpClient(settings)
-                listings = yc_scrape(settings, client)
+                # Look for JSON data in the HTML - try multiple patterns
+                patterns = [
+                    r'"jobs":\s*(\[.*?\])',
+                    r'jobs":\s*(\[.*?\])',
+                    r'"jobs":\s*(\[.*?\]),',
+                    r'window\.__INITIAL_STATE__\s*=\s*({.*?});',
+                    r'__INITIAL_STATE__\s*=\s*({.*?});'
+                ]
                 
-                job_items = []
-                for listing in listings:
-                    job = JobItem(
-                        company=listing.company,
-                        role_title=listing.role_title,
-                        location=listing.location or "",
-                        pay=listing.pay,
-                        source_url=listing.source_url,
-                        responsibilities=listing.responsibilities,
-                        recommended_tech_stack=listing.recommended_tech_stack or ""
-                    )
-                    job_items.append(job)
+                jobs_data = None
+                for pattern in patterns:
+                    match = re.search(pattern, response.text, re.DOTALL)
+                    if match:
+                        try:
+                            data = json.loads(match.group(1))
+                            if isinstance(data, dict) and 'jobs' in data:
+                                jobs_data = data['jobs']
+                            elif isinstance(data, list):
+                                jobs_data = data
+                            if jobs_data:
+                                break
+                        except json.JSONDecodeError:
+                            continue
                 
-                return job_items
+                # If no JSON found, try to extract from URL-encoded data
+                has_id = '"id":' in response.text
+                has_title = '"title":' in response.text
+                logger.info(f"Checking for JSON structure: 'id' in text: {has_id}, 'title' in text: {has_title}")
+                logger.info(f"Response content length: {len(response.text)}")
+                logger.info(f"Contains 'internship': {'internship' in response.text.lower()}")
+                logger.info(f"Contains 'Machine Learning': {'Machine Learning' in response.text}")
+                
+                # Try to find the data even if it's URL-encoded
+                if not jobs_data and ('internship' in response.text.lower() or 'Machine Learning' in response.text):
+                    logger.info("Found internship content, attempting to extract data...")
+                    # Look for the data in the response
+                    if 'Machine Learning' in response.text:
+                        start = response.text.find('Machine Learning')
+                        logger.info(f"Found 'Machine Learning' at position {start}")
+                        
+                        # Look backwards for the start of the array - try multiple patterns
+                        json_start = None
+                        for i in range(start, max(0, start-2000), -1):
+                            if response.text[i:i+2] == '[{':
+                                json_start = i
+                                logger.info(f"Found array start at position {json_start}")
+                                break
+                        
+                        if json_start is None:
+                            # Try to find the actual array start by looking for the pattern we saw
+                            for i in range(start, max(0, start-2000), -1):
+                                if response.text[i:i+10] == '&quot;},{&quot;':
+                                    json_start = i + 10  # Start after the pattern
+                                    logger.info(f"Found array start after pattern at position {json_start}")
+                                    break
+                        
+                        if json_start is None:
+                            # Fallback: look for any opening brace
+                            for i in range(start, max(0, start-1000), -1):
+                                if response.text[i] == '{':
+                                    json_start = i
+                                    logger.info(f"Found object start at position {json_start}")
+                                    break
+                            else:
+                                json_start = start - 100
+                        
+                        # Look forward for the end
+                        end = response.text.find('}]', start)
+                        if end > start:
+                            json_text = response.text[json_start:end+2]
+                            logger.info(f"Extracted JSON block: {len(json_text)} characters")
+                            
+                            # Show first 200 characters for debugging
+                            logger.info(f"First 200 chars: {json_text[:200]}")
+                            
+                            # Try to find the actual array start within the extracted text
+                            array_start = json_text.find('[{')
+                            if array_start > 0:
+                                json_text = json_text[array_start:]
+                                logger.info(f"Found array start within text, new length: {len(json_text)}")
+                            else:
+                                # If we don't have an array, we need to create one from the objects
+                                if json_text.startswith('{'):
+                                    # Find all the individual objects and wrap them in an array
+                                    objects = []
+                                    current_pos = 0
+                                    brace_count = 0
+                                    start_pos = 0
+                                    
+                                    for i, char in enumerate(json_text):
+                                        if char == '{':
+                                            if brace_count == 0:
+                                                start_pos = i
+                                            brace_count += 1
+                                        elif char == '}':
+                                            brace_count -= 1
+                                            if brace_count == 0:
+                                                # Found a complete object
+                                                obj_text = json_text[start_pos:i+1]
+                                                objects.append(obj_text)
+                                    
+                                    if objects:
+                                        json_text = '[' + ','.join(objects) + ']'
+                                        logger.info(f"Created array from {len(objects)} objects, new length: {len(json_text)}")
+                            
+                            # Clean up HTML entities first
+                            import html
+                            cleaned_text = html.unescape(json_text)
+                            logger.info(f"Cleaned HTML entities, new length: {len(cleaned_text)}")
+                            
+                            # Try to parse the cleaned JSON
+                            try:
+                                jobs_data = json.loads(cleaned_text)
+                                logger.info(f"Successfully parsed {len(jobs_data)} items from cleaned JSON")
+                            except json.JSONDecodeError as e:
+                                logger.error(f"Cleaned JSON parse error: {e}")
+                                # Try URL decoding
+                                import urllib.parse
+                                decoded_text = urllib.parse.unquote(cleaned_text)
+                                try:
+                                    jobs_data = json.loads(decoded_text)
+                                    logger.info(f"Successfully parsed {len(jobs_data)} items from decoded JSON")
+                                except json.JSONDecodeError as e2:
+                                    logger.error(f"Decoded JSON parse error: {e2}")
+                                    # Try without URL decoding
+                                    try:
+                                        jobs_data = json.loads(json_text)
+                                        logger.info(f"Successfully parsed {len(jobs_data)} items from raw JSON")
+                                    except json.JSONDecodeError as e3:
+                                        logger.error(f"Raw JSON parse error: {e3}")
+                                        pass
+                        else:
+                            logger.info("Could not find array end")
+                
+                if not jobs_data and '"id":' in response.text and '"title":' in response.text:
+                    logger.info("Found JSON structure with id and title, attempting extraction...")
+                    # Look for the start of the array
+                    start = response.text.find('"id":')
+                    if start > 0:
+                        # Look backwards for the start of the array
+                        for i in range(start, max(0, start-2000), -1):
+                            if response.text[i:i+2] == '[{':
+                                json_start = i
+                                break
+                        else:
+                            json_start = start - 100
+                            
+                        # Look forward for the end
+                        end = response.text.find('}]', start)
+                        if end > start:
+                            json_text = response.text[json_start:end+2]
+                            logger.info(f"Extracted JSON block: {len(json_text)} characters")
+                            
+                            # Try URL decoding first
+                            import urllib.parse
+                            decoded_text = urllib.parse.unquote(json_text)
+                            try:
+                                jobs_data = json.loads(decoded_text)
+                                logger.info(f"Successfully parsed {len(jobs_data)} items from decoded JSON")
+                            except json.JSONDecodeError as e:
+                                logger.error(f"Decoded JSON parse error: {e}")
+                                # Try without URL decoding
+                                try:
+                                    jobs_data = json.loads(json_text)
+                                    logger.info(f"Successfully parsed {len(jobs_data)} items from raw JSON")
+                                except json.JSONDecodeError as e2:
+                                    logger.error(f"Raw JSON parse error: {e2}")
+                                    pass
+                
+                if jobs_data:
+                    logger.info(f"Found {len(jobs_data)} jobs in JSON data")
+                    
+                    job_items = []
+                    for job_data in jobs_data:
+                            # Apply filters
+                            if job_type == "internship" and job_data.get('type', '').lower() != 'internship':
+                                continue
+                                
+                            if role_category:
+                                title_lower = (job_data.get('title') or '').lower()
+                                role_lower = (job_data.get('roleSpecificType') or '').lower()
+                                if role_category == "ai" and not any(kw in title_lower or kw in role_lower for kw in ['ai', 'machine learning', 'ml', 'artificial intelligence']):
+                                    continue
+                                elif role_category == "backend" and not any(kw in title_lower or kw in role_lower for kw in ['backend', 'server', 'api', 'database', 'engineer']):
+                                    continue
+                            
+                            if keywords:
+                                keyword_list = [kw.strip().lower() for kw in keywords.split(",")]
+                                search_text = f"{job_data.get('title', '')} {job_data.get('companyName', '')}".lower()
+                                if not any(keyword in search_text for keyword in keyword_list):
+                                    continue
+                            
+                            # Create JobItem
+                            job = JobItem(
+                                company=job_data.get('companyName', ''),
+                                role_title=job_data.get('title', ''),
+                                location=job_data.get('location', ''),
+                                pay=job_data.get('salaryRange', ''),
+                                source_url=f"https://www.workatastartup.com{job_data.get('url', '')}",
+                                responsibilities='',  # Would need to fetch from detail page
+                                recommended_tech_stack=', '.join(job_data.get('skills', [])),
+                                posted_at=job_data.get('createdAt', ''),
+                                scraped_at=datetime.now().isoformat()
+                            )
+                            job_items.append(job)
+                        
+                    logger.info(f"Successfully scraped {len(job_items)} jobs")
+                    return job_items
+                else:
+                    logger.warning("No JSON data found in page")
+                    return []
                 
             except Exception as e2:
                 logger.error(f"Live scraping also failed: {e2}")

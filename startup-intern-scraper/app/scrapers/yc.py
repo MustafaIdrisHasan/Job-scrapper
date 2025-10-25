@@ -23,6 +23,10 @@ def _get_urls_for_filters(settings: Settings) -> list[str]:
     # Focus only on internships page for remote internships
     urls.append("https://www.workatastartup.com/internships")
     
+    # Also include general jobs page if not specifically filtering for internships
+    if not settings.job_type or settings.job_type != "internship":
+        urls.append("https://www.workatastartup.com/jobs")
+    
     return urls
 
 
@@ -35,13 +39,33 @@ def scrape(settings: Settings, client: HttpClient) -> List[InternshipListing]:
     list_urls = _get_urls_for_filters(settings)
 
     for list_url in list_urls:
-        next_url = list_url
-        for _ in range(5):  # hard stop to avoid infinite loops
-            try:
-                response = client.get(next_url)
-            except Exception as exc:  # noqa: BLE001
-                LOGGER.warning("Failed to load YC listing page %s: %s", next_url, exc)
-                break
+        try:
+            response = client.get(list_url)
+        except Exception as exc:  # noqa: BLE001
+            LOGGER.warning("Failed to load YC listing page %s: %s", list_url, exc)
+            continue
+            
+        # Try to extract from JSON data first (for dynamic content)
+        json_listings = _extract_from_json_data(response.text)
+        if json_listings:
+            for job_data in json_listings:
+                listing = _parse_json_job(job_data)
+                if not listing:
+                    continue
+                if listing.id in seen:
+                    continue
+                
+                # Apply filters
+                if settings.job_type == "internship" and not _is_internship_role(listing):
+                    continue
+                
+                if settings.keywords and not _matches_keywords(listing, settings.keywords):
+                    continue
+                
+                seen.add(listing.id)
+                listings.append(listing)
+        else:
+            # Fallback to HTML parsing
             soup = BeautifulSoup(response.text, "lxml")
             # Try new structure first
             cards = soup.select("div.w-full.bg-beige-lighter")
@@ -57,25 +81,15 @@ def scrape(settings: Settings, client: HttpClient) -> List[InternshipListing]:
                 if listing.id in seen:
                     continue
                 
-                # Temporarily disable strict filtering to get data first
-                # if not _is_internship_role(listing):
-                #     continue
-                # 
-                # if not _is_remote_job(listing):
-                #     continue
+                # Apply filters
+                if settings.job_type == "internship" and not _is_internship_role(listing):
+                    continue
                 
-                # Apply keyword filtering if specified
                 if settings.keywords and not _matches_keywords(listing, settings.keywords):
                     continue
                 
                 seen.add(listing.id)
                 listings.append(listing)
-
-            next_link = soup.select_one("a[rel='next']")
-            if next_link and next_link.get("href"):
-                next_url = urljoin(BASE_URL, next_link["href"])
-            else:
-                break
 
     return listings
 
@@ -203,6 +217,76 @@ def _fetch_responsibilities(client: HttpClient, detail_url: str) -> str:
     return cleaned.strip()
 
 
+def _extract_from_json_data(html_content: str) -> List[dict]:
+    """Extract job data from JSON embedded in HTML."""
+    import re
+    import json
+    
+    # Look for JSON data in script tags
+    json_pattern = r'window\.__INITIAL_STATE__\s*=\s*({.*?});'
+    match = re.search(json_pattern, html_content, re.DOTALL)
+    
+    if not match:
+        # Try alternative patterns
+        json_pattern = r'"jobs":\s*(\[.*?\])'
+        match = re.search(json_pattern, html_content, re.DOTALL)
+    
+    if match:
+        try:
+            data = json.loads(match.group(1))
+            if isinstance(data, dict) and 'jobs' in data:
+                return data['jobs']
+            elif isinstance(data, list):
+                return data
+        except json.JSONDecodeError:
+            pass
+    
+    return []
+
+
+def _parse_json_job(job_data: dict) -> Optional[InternshipListing]:
+    """Parse job data from JSON."""
+    try:
+        title = job_data.get('title', '')
+        company = job_data.get('companyName', '')
+        location = job_data.get('location', '')
+        pay = job_data.get('salaryRange', '')
+        job_url = job_data.get('url', '')
+        job_type = job_data.get('type', '')
+        role_type = job_data.get('roleSpecificType', '')
+        
+        # Build full URL
+        if job_url and not job_url.startswith('http'):
+            source_url = urljoin(BASE_URL, job_url)
+        else:
+            source_url = job_url
+            
+        # Extract skills/tech stack
+        skills = job_data.get('skills', [])
+        tech_stack = ', '.join(skills) if skills else ''
+        
+        # Get description from job data if available
+        description = job_data.get('description', '')
+        
+        listing = InternshipListing(
+            source="yc",
+            company=company,
+            role_title=title,
+            source_url=source_url,
+            responsibilities=description,
+            location=location,
+            pay=pay,
+            recommended_tech_stack=tech_stack,
+            posted_at=job_data.get('createdAt', ''),
+        )
+        
+        return listing
+        
+    except Exception as exc:  # noqa: BLE001
+        LOGGER.debug("Failed to parse JSON job data: %s", exc)
+        return None
+
+
 def _extract_pay_from_detail(client: HttpClient, detail_url: str) -> str:
     """Extract pay information from job detail page."""
     try:
@@ -210,13 +294,13 @@ def _extract_pay_from_detail(client: HttpClient, detail_url: str) -> str:
     except Exception as exc:  # noqa: BLE001
         LOGGER.debug("Failed to load YC detail page for pay %s: %s", detail_url, exc)
         return ""
-    
+
     soup = BeautifulSoup(response.text, "lxml")
-    
+
     # Look for pay information in various places
     pay_selectors = [
         "span:contains('$')",
-        "span:contains('USD')", 
+        "span:contains('USD')",
         "span:contains('hour')",
         "span:contains('stipend')",
         "span:contains('salary')",
@@ -226,12 +310,12 @@ def _extract_pay_from_detail(client: HttpClient, detail_url: str) -> str:
         ".salary",
         ".pay"
     ]
-    
+
     for selector in pay_selectors:
         elements = soup.select(selector)
         for element in elements:
             text = element.get_text(strip=True)
             if any(keyword in text.lower() for keyword in ['$', 'usd', 'hour', 'stipend', 'salary', 'pay']):
                 return text
-    
+
     return ""

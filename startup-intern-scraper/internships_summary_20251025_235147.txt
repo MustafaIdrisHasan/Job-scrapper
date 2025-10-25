@@ -1,0 +1,250 @@
+================================================================================
+INTERNSHIP SCRAPING SUMMARY REPORT
+================================================================================
+Generated: 2025-10-25 23:51:47
+Total Unique Internships: 47
+
+FILES PROCESSED:
+----------------------------------------
+yc_jobs_20251025_234612.csv: 22 records (internship)
+yc_jobs_20251025_234659.csv: 6 records (internship)
+salem_laptops_20251025_231628.csv: 24 records (laptop)
+salem_laptops_20251025_232531.csv: 24 records (laptop)
+
+COMPANIES WITH INTERNSHIPS:
+----------------------------------------
+14.ai: 1 positions
+Kastle: 1 positions
+Tandem: 1 positions
+SubImage: 1 positions
+SimCare AI: 1 positions
+SafetyKit: 1 positions
+Reacher: 1 positions
+Promptless: 1 positions
+Orchids: 1 positions
+Mosaic: 1 positions
+Morph: 1 positions
+Ember: 1 positions
+Aravolta: 1 positions
+CreativeMode: 1 positions
+Corgi: 1 positions
+Conductor Quantum: 1 positions
+Circleback: 1 positions
+Cekura: 1 positions
+CTGT: 1 positions
+BrowserOS: 1 positions
+
+PAY ANALYSIS:
+----------------------------------------
+Positions with pay info: 23/47
+Pay range: $4.0K - $100.0K monthly
+Average pay: $11.7K monthly
+
+LOCATION ANALYSIS:
+----------------------------------------
+San Francisco, CA, US: 20 positions
+San Francisco, CA, US / Remote (US): 2 positions
+San Francisco, CA, US / Los Angeles, CA, US: 1 positions
+
+RECENT POSTINGS:
+----------------------------------------
+• 14.ai: Full Stack Engineering Internship (now and Summer 2026) (6 months)
+• Aravolta: Intern (2 months)
+• Bindwell: Machine Learning Intern (Summer 2026) (4 months)
+• Browser Use: Summer Software Engineering Intern (now and Summer 2026) (6 months)
+• BrowserOS: ML Research Engineer Intern (3 months)
+• CTGT: Software Engineering Intern (Summer 2026) (2 months)
+• Cekura: AI Engineer Intern (Summer 2026) (2 months)
+• Circleback: Software Engineering Intern (Summer 2026) (2 months)
+• Conductor Quantum: Intern – Summer 2026 (2 months)
+• Corgi: GTM Builder - Summer '26 (2 months)
+
+ALL INTERNSHIPS:
+----------------------------------------
+ 1. 14.ai: Full Stack Engineering Internship (now and Summer 2026)
+    Location: San Francisco, CA, US
+    Pay: $5K - $10K / monthly
+    URL: https://www.workatastartup.com/companies/14-ai/jobs/KoEfdhc-full-stack-engineering-internship-now-and-summer-2026
+
+ 2. Aravolta: Intern
+    Location: San Francisco, CA, US / Remote (US)
+    Pay: $4K - $15K / monthly
+    URL: https://www.workatastartup.com/companies/aravolta/jobs/xNqAuCd-intern
+
+ 3. Bindwell: Machine Learning Intern (Summer 2026)
+    Location: San Francisco, CA, US
+    Pay: $6.5K - $10K / monthly
+    URL: https://www.workatastartup.com/companies/bindwell/jobs/k3dfghz-machine-learning-intern-summer-2026
+
+ 4. Browser Use: Summer Software Engineering Intern (now and Summer 2026)
+    Location: San Francisco, CA, US
+    Pay: $6K - $16K / monthly
+    URL: https://www.workatastartup.com/companies/browser-use/jobs/JwGWpEP-summer-software-engineering-intern-now-and-summer-2026
+
+ 5. BrowserOS: ML Research Engineer Intern
+    Location: San Francisco, CA, US
+    Pay: $6K - $10K / monthly
+    URL: https://www.workatastartup.com/companies/browseros/jobs/XFrdIN5-ml-research-engineer-intern
+
+ 6. CTGT: Software Engineering Intern (Summer 2026)
+    Location: San Francisco, CA, US
+    Pay: $8K - $12K / monthly
+    URL: https://www.workatastartup.com/companies/ctgt/jobs/VHfSxi6-software-engineering-intern-summer-2026
+
+ 7. Cekura: AI Engineer Intern (Summer 2026)
+    Location: San Francisco, CA, US
+    Pay: $4.5K - $5K / monthly
+    URL: https://www.workatastartup.com/companies/cekura-ai/jobs/ti8zM06-ai-engineer-intern-summer-2026
+
+ 8. Circleback: Software Engineering Intern (Summer 2026)
+    Location: San Francisco, CA, US
+    Pay: $7K - $10K / monthly
+    URL: https://www.workatastartup.com/companies/circleback/jobs/oy71IJv-software-engineering-intern-summer-2026
+
+ 9. Conductor Quantum: Intern – Summer 2026
+    Location: San Francisco, CA, US
+    Pay: $6K / monthly
+    URL: https://www.workatastartup.com/companies/conductor-quantum/jobs/a2NEN5i-intern-summer-2026
+
+10. Corgi: GTM Builder - Summer '26
+    Location: San Francisco, CA, US
+    Pay: $60K - $100K
+    URL: https://www.workatastartup.com/companies/corgi/jobs/CPGeBHx-gtm-builder-summer-26
+
+11. CreativeMode: SWE Intern (Summer 2026)
+    Location: San Francisco, CA, US
+    Pay: $5.8K - $7.5K / monthly
+    URL: https://www.workatastartup.com/companies/creativemode/jobs/SqRWS9Z-swe-intern-summer-2026
+
+12. Ember: Full Stack Engineering Intern (Summer 2026)
+    Location: San Francisco, CA, US
+    Pay: $6K - $10K / monthly
+    URL: https://www.workatastartup.com/companies/ember/jobs/OTB0qby-full-stack-engineering-intern-summer-2026
+
+13. Kastle: Founder Intern (now and Summer 2026)
+    Location: San Francisco, CA, US
+    Pay: $8K - $8.75K / monthly
+    URL: https://www.workatastartup.com/companies/kastle/jobs/drQwng0-founder-intern-now-and-summer-2026
+
+14. Morph: Machine Learning Engineering Intern 
+    Location: San Francisco, CA, US
+    Pay: $6K - $10K / monthly
+    URL: https://www.workatastartup.com/companies/morph/jobs/6enPRLQ-machine-learning-engineering-intern
+
+15. Mosaic: Full Stack Engineering Internship (Summer 2026)
+    Location: San Francisco, CA, US
+    Pay: $5K - $8.5K / monthly
+    URL: https://www.workatastartup.com/companies/mosaic-2/jobs/xyE4cJw-full-stack-engineering-internship-summer-2026
+
+16. Orchids: Full Stack Engineer (Intern)
+    Location: San Francisco, CA, US / Remote (US)
+    Pay: $6K - $12K / monthly
+    URL: https://www.workatastartup.com/companies/orchids/jobs/NS0hAue-full-stack-engineer-intern
+
+17. Promptless: Software Engineering Intern (Summer 2026)
+    Location: San Francisco, CA, US
+    Pay: $6K - $15K / monthly
+    URL: https://www.workatastartup.com/companies/promptless/jobs/VvCG8o1-software-engineering-intern-summer-2026
+
+18. Reacher: Software Engineer Intern (Fall 2025/Summer 2026)
+    Location: San Francisco, CA, US / Los Angeles, CA, US
+    Pay: $6K - $10K / monthly
+    URL: https://www.workatastartup.com/companies/reacher/jobs/HxPjZJm-software-engineer-intern-fall-2025-summer-2026
+
+19. SafetyKit: Full Stack Engineer, Intern Summer 2026
+    Location: San Francisco, CA, US
+    Pay: $12.5K - $16.5K / monthly
+    URL: https://www.workatastartup.com/companies/safetykit/jobs/eQpUzRD-full-stack-engineer-intern-summer-2026
+
+20. SimCare AI: Technical Intern (in person, summer '26)
+    Location: San Francisco, CA, US
+    Pay: $7K - $11K
+    URL: https://www.workatastartup.com/companies/simcare-ai/jobs/TuIKb5M-technical-intern-in-person-summer-26
+
+21. SubImage: Full Stack Software Engineer Intern [Summer 2026]
+    Location: San Francisco, CA, US
+    Pay: $6K
+    URL: https://www.workatastartup.com/companies/subimage/jobs/WLWS24s-full-stack-software-engineer-intern-summer-2026
+
+22. Tandem: Summer 2026 Eng Intern
+    Location: San Francisco, CA, US
+    Pay: $5K - $8K / monthly
+    URL: https://www.workatastartup.com/companies/tandem-2/jobs/eCSgoZA-summer-2026-eng-intern
+
+23. ThirdLayer: 2026 Summer AI/ML Engineer Intern
+    Location: San Francisco, CA, US
+    Pay: $6K - $10K / monthly
+    URL: https://www.workatastartup.com/companies/thirdlayer/jobs/jgOpS9K-2026-summer-ai-ml-engineer-intern
+
+24. nan: Dell Latitude 5491
+    URL: https://salemtechsperts.com/products/dell-latitude-5491
+
+25. nan: Dell Latitude 5510
+    URL: https://salemtechsperts.com/products/dell-latitude-5510
+
+26. nan: Dell Latitude 7490
+    URL: https://salemtechsperts.com/products/dell-latitude-7490
+
+27. nan: Dell OptiPlex 3050 Micro
+    URL: https://salemtechsperts.com/products/dell-optiplex-3050-micro
+
+28. nan: Dell OptiPlex 5060 Micro
+    URL: https://salemtechsperts.com/products/dell-optiplex-5060
+
+29. nan: Dell Precision 3541
+    URL: https://salemtechsperts.com/products/dell-precision-3541
+
+30. nan: Dell Precision 3551
+    URL: https://salemtechsperts.com/products/dell-precision-3551
+
+31. nan: Dell Precision 5540
+    URL: https://salemtechsperts.com/products/dell-precision-5540
+
+32. nan: GRIP GLASS Screen Protector
+    URL: https://salemtechsperts.com/products/grip-glass-screen-protector
+
+33. nan: HP EliteBook 850 G7
+    URL: https://salemtechsperts.com/products/hp-elitebook-850-g7
+
+34. nan: HP EliteBook 850 G8
+    URL: https://salemtechsperts.com/products/hp-elitebook-850-g8
+
+35. nan: Lenovo ThinkCentre M700
+    URL: https://salemtechsperts.com/products/lenovo-thinkcentre-m700
+
+36. nan: Lenovo ThinkCentre M70q
+    URL: https://salemtechsperts.com/products/lenovo-thinkcentre-m70q
+
+37. nan: Lenovo ThinkCentre M710q
+    URL: https://salemtechsperts.com/products/lenovo-thinkcentre-m710q
+
+38. nan: Lenovo ThinkCentre M720q
+    URL: https://salemtechsperts.com/products/lenovo-thinkcentre-m720q
+
+39. nan: Lenovo ThinkPad T14s Gen 2
+    URL: https://salemtechsperts.com/products/lenovo-thinkpad-t14s-gen-2
+
+40. nan: Lenovo ThinkPad X1 Carbon Gen 10 - i7-1260P Touchscreen 1920x1200
+    URL: https://salemtechsperts.com/products/lenovo-thinkpad-x1-carbon-gen-10-i7-1260p-touchscreen-1920x1200
+
+41. nan: Lenovo ThinkPad X1 Carbon Gen 5 - i7-7500U
+    URL: https://salemtechsperts.com/products/lenovo-thinkpad-x1-carbon-gen-5-i7-7500u
+
+42. nan: Lenovo ThinkPad X1 Carbon Gen 6 - i7-8650U
+    URL: https://salemtechsperts.com/products/lenovo-thinkpad-x1-carbon-gen-6-i7-10610u-touchscreen
+
+43. nan: Lenovo ThinkPad X1 Carbon Gen 7 - i7-8665U, Touchscreen
+    URL: https://salemtechsperts.com/products/lenovo-thinkpad-x1-carbon-gen-7-i7-8665u-touchscreen
+
+44. nan: Lenovo ThinkPad X1 Carbon Gen 8 - i7-10610U, Touchscreen
+    URL: https://salemtechsperts.com/products/lenovo-thinkpad-x1-carbon-gen-8-i7-10610u
+
+45. nan: Lenovo ThinkPad X1 Carbon Gen 9 - i5-1145G7
+    URL: https://salemtechsperts.com/products/lenovo-thinkpad-x1-carbon-gen-9-i5-11th-gen-1080p-display
+
+46. nan: Lenovo ThinkPad X1 Carbon Gen 9 - i7-1165G7
+    URL: https://salemtechsperts.com/products/lenovo-thinkpad-x1-carbon-gen-9-i7-11th-gen-1080p-display
+
+47. nan: Lenovo ThinkPad X1 Carbon Gen 9 - i7-1185G7
+    URL: https://salemtechsperts.com/products/lenovo-thinkpad-x1-carbon-gen-9-i7-1185g7
+
