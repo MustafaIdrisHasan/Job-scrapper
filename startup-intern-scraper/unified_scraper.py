@@ -176,14 +176,29 @@ class UnifiedScraper:
                 if not url.startswith('http'):
                     url = f"https://salemtechsperts.com{url}"
                 
-                # Extract title
-                title_selectors = ['h3', 'h4', '.product-title', '.product-name', 'a']
+                # Extract title - try multiple approaches
                 title = ""
+                
+                # Method 1: Look for title in the element itself
+                title_selectors = ['h3', 'h4', '.product-title', '.product-name', 'a']
                 for sel in title_selectors:
                     title_elem = element.select_one(sel)
                     if title_elem:
                         title = title_elem.get_text(strip=True)
-                        break
+                        if title:
+                            break
+                
+                # Method 2: If no title found, use the link text
+                if not title:
+                    title = element.get_text(strip=True)
+                
+                # Method 3: Extract from URL if still no title
+                if not title and url:
+                    # Extract product name from URL
+                    url_parts = url.split('/')
+                    if 'products' in url_parts:
+                        product_name = url_parts[-1].replace('-', ' ').title()
+                        title = product_name
                 
                 # Extract price
                 price = self._extract_price(element)
@@ -209,10 +224,23 @@ class UnifiedScraper:
     def _extract_price(self, element) -> Optional[float]:
         """Extract price from element"""
         text = element.get_text()
-        price_pattern = r'(?:From\s*)?\$(\d+(?:\.\d{2})?)'
-        match = re.search(price_pattern, text)
-        if match:
-            return float(match.group(1))
+        
+        # Try multiple price patterns
+        price_patterns = [
+            r'(?:From\s*)?\$(\d+(?:\.\d{2})?)',  # $123.45
+            r'\$(\d+)',  # $123
+            r'(\d+(?:\.\d{2})?)\s*USD',  # 123.45 USD
+            r'Price:\s*\$(\d+(?:\.\d{2})?)',  # Price: $123.45
+        ]
+        
+        for pattern in price_patterns:
+            match = re.search(pattern, text)
+            if match:
+                try:
+                    return float(match.group(1))
+                except ValueError:
+                    continue
+        
         return None
     
     def _extract_status(self, element) -> str:
