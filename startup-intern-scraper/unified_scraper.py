@@ -117,39 +117,104 @@ class UnifiedScraper:
         return laptop_items
     
     def scrape_yc_jobs(self, job_type: str = "internship", role_category: str = None, keywords: str = None) -> List[JobItem]:
-        """Scrape Y Combinator jobs"""
+        """Scrape Y Combinator jobs - focus on internships"""
         logger.info(f"Scraping Y Combinator jobs (type: {job_type}, category: {role_category})")
         
-        # Import the existing YC scraper
-        sys.path.append('.')
-        from app.scrapers.yc import scrape as yc_scrape
-        from app.config import Settings
-        from app.scrapers import HttpClient
-        
-        # Create settings with filters
-        settings = Settings()
-        settings.job_type = job_type
-        settings.role_category = role_category
-        settings.keywords = keywords
-        
-        client = HttpClient(settings)
-        listings = yc_scrape(settings, client)
-        
-        # Convert to JobItem objects
-        job_items = []
-        for listing in listings:
-            job = JobItem(
-                company=listing.company,
-                role_title=listing.role_title,
-                location=listing.location or "",
-                pay=listing.pay,
-                source_url=listing.source_url,
-                responsibilities=listing.responsibilities,
-                recommended_tech_stack=listing.recommended_tech_stack or ""
-            )
-            job_items.append(job)
-        
-        return job_items
+        # Try to use existing data first (more reliable)
+        try:
+            import pandas as pd
+            df = pd.read_csv('out/internships.csv')
+            logger.info(f"Found {len(df)} existing listings")
+            
+            # Filter for internships if requested
+            if job_type == "internship":
+                filtered_df = df[df['role_title'].str.contains('intern|Intern', case=False, na=False)]
+                logger.info(f"Filtered to {len(filtered_df)} internship roles")
+            else:
+                filtered_df = df
+            
+            # Apply additional filters
+            if role_category:
+                # Map role categories to keywords
+                role_keywords = {
+                    "backend": "backend|server|api|database",
+                    "frontend": "frontend|ui|ux|react|angular|vue",
+                    "fullstack": "fullstack|full-stack|full stack",
+                    "data": "data|analytics|ml|ai|machine learning",
+                    "ai": "ai|artificial intelligence|ml|machine learning",
+                    "mobile": "mobile|ios|android|react native",
+                    "devops": "devops|infrastructure|cloud|aws|azure",
+                    "product": "product|pm|product manager",
+                    "design": "design|ui|ux|designer"
+                }
+                if role_category in role_keywords:
+                    pattern = role_keywords[role_category]
+                    filtered_df = filtered_df[filtered_df['role_title'].str.contains(pattern, case=False, na=False)]
+                    logger.info(f"After role filter: {len(filtered_df)} listings")
+            
+            if keywords:
+                keyword_list = [kw.strip().lower() for kw in keywords.split(",")]
+                for keyword in keyword_list:
+                    # Handle NaN values in string columns
+                    filtered_df = filtered_df[
+                        filtered_df['role_title'].fillna('').str.contains(keyword, case=False, na=False) |
+                        filtered_df['company'].fillna('').str.contains(keyword, case=False, na=False) |
+                        filtered_df['responsibilities'].fillna('').str.contains(keyword, case=False, na=False)
+                    ]
+                logger.info(f"After keyword filter: {len(filtered_df)} listings")
+            
+            # Convert to JobItem objects
+            job_items = []
+            for _, row in filtered_df.iterrows():
+                job = JobItem(
+                    company=row['company'],
+                    role_title=row['role_title'],
+                    location=row['location'] or "",
+                    pay=row['pay'],
+                    source_url=row['source_url'],
+                    responsibilities=row['responsibilities'],
+                    recommended_tech_stack=row['recommended_tech_stack'] or ""
+                )
+                job_items.append(job)
+            
+            return job_items
+            
+        except Exception as e:
+            logger.error(f"Error using existing data: {e}")
+            logger.info("Falling back to live scraping...")
+            
+            # Fallback to live scraping
+            try:
+                from app.scrapers.yc import scrape as yc_scrape
+                from app.config import Settings
+                from app.scrapers import HttpClient
+                
+                settings = Settings()
+                settings.job_type = job_type
+                settings.role_category = role_category
+                settings.keywords = keywords
+                
+                client = HttpClient(settings)
+                listings = yc_scrape(settings, client)
+                
+                job_items = []
+                for listing in listings:
+                    job = JobItem(
+                        company=listing.company,
+                        role_title=listing.role_title,
+                        location=listing.location or "",
+                        pay=listing.pay,
+                        source_url=listing.source_url,
+                        responsibilities=listing.responsibilities,
+                        recommended_tech_stack=listing.recommended_tech_stack or ""
+                    )
+                    job_items.append(job)
+                
+                return job_items
+                
+            except Exception as e2:
+                logger.error(f"Live scraping also failed: {e2}")
+                return []
     
     def _extract_laptop_cards(self, soup: BeautifulSoup) -> List[Dict]:
         """Extract laptop cards from collection page"""
