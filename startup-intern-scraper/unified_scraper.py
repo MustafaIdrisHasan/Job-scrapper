@@ -43,6 +43,8 @@ class JobItem:
     source_url: str
     responsibilities: str = ""
     recommended_tech_stack: str = ""
+    posted_at: str = ""
+    scraped_at: str = ""
 
 class UnifiedScraper:
     """Unified scraper for both Salem Techsperts and Y Combinator"""
@@ -173,7 +175,9 @@ class UnifiedScraper:
                     pay=row['pay'],
                     source_url=row['source_url'],
                     responsibilities=row['responsibilities'],
-                    recommended_tech_stack=row['recommended_tech_stack'] or ""
+                    recommended_tech_stack=row['recommended_tech_stack'] or "",
+                    posted_at=row.get('posted_at', ''),
+                    scraped_at=row.get('scraped_at', '')
                 )
                 job_items.append(job)
             
@@ -453,7 +457,7 @@ class UnifiedScraper:
         
         with open(filename, 'w', newline='', encoding='utf-8') as csvfile:
             writer = csv.writer(csvfile)
-            writer.writerow(['company', 'role_title', 'location', 'pay', 'source_url', 'responsibilities', 'recommended_tech_stack'])
+            writer.writerow(['company', 'role_title', 'location', 'pay', 'source_url', 'responsibilities', 'recommended_tech_stack', 'posted_at', 'scraped_at'])
             
             for item in items:
                 writer.writerow([
@@ -463,7 +467,9 @@ class UnifiedScraper:
                     item.pay,
                     item.source_url,
                     item.responsibilities,
-                    item.recommended_tech_stack
+                    item.recommended_tech_stack,
+                    item.posted_at,
+                    item.scraped_at
                 ])
         
         logger.info(f"Exported {len(items)} jobs to {filename}")
@@ -535,8 +541,17 @@ def main():
         filename = scraper.export_jobs_csv(items)
         print(f"\nJob data exported to: {filename}")
         logger.info(f"Found {len(items)} jobs")
-        for item in items[:5]:  # Show first 5
-            print(f"- {item.company}: {item.role_title} | {item.location} | {item.pay}")
+        
+        # Show jobs with date information
+        print(f"\nJob Listings ({len(items)} found):")
+        for i, item in enumerate(items[:10], 1):  # Show first 10
+            posted_info = f"Posted: {item.posted_at}" if item.posted_at else "Posted: Unknown"
+            scraped_info = f"Scraped: {item.scraped_at}" if item.scraped_at else "Scraped: Unknown"
+            print(f"{i}. {item.company}: {item.role_title}")
+            print(f"   Location: {item.location} | Pay: {item.pay}")
+            print(f"   {posted_info} | {scraped_info}")
+            print(f"   URL: {item.source_url}")
+            print()
 
 if __name__ == "__main__":
     main()
